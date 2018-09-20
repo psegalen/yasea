@@ -17,7 +17,7 @@ public class SrsPublisher {
     private static AudioRecord mic;
     private static AcousticEchoCanceler aec;
     private static AutomaticGainControl agc;
-    private byte[] mPcmBuffer = new byte[4096];
+    private byte[] mPcmBuffer = new byte[2048];
     private Thread aworker;
 
     private SrsCameraView mCameraView;
