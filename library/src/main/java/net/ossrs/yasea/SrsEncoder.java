@@ -32,7 +32,7 @@ public class SrsEncoder {
     public static int vLandscapeHeight = 360;
     public static int vOutWidth = 360;   // Note: the stride of resolution must be set as 16x for hard encoding with some chip like MTK
     public static int vOutHeight = 640;  // Since Y component is quadruple size as U and V component, the stride must be set as 32x
-    public static int vBitrate = 1200 * 1024;  // 1200 kbps
+    public static int vBitrate = 2048 * 1024;  // 1200 kbps
     public static final int VFPS = 32;
     public static final int VGOP = 18;
     public static final int ASAMPLERATE = 44100;
