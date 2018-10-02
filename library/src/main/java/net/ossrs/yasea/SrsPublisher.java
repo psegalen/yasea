@@ -231,16 +231,26 @@ public class SrsPublisher {
     }
 
     public void setOutputResolution(int width, int height) {
-        if (width <= height) {
+        /*if (width <= height) {
             mEncoder.setPortraitResolution(width, height);
-        } else {
+        } else {*/
             mEncoder.setLandscapeResolution(width, height);
-        }
+        //}
+    }
+
+    public void setScreenRotation(int rotation) {
+        mCameraView.setRotation(rotation);
     }
 
     public void setScreenOrientation(int orientation) {
         mCameraView.setPreviewOrientation(orientation);
         mEncoder.setScreenOrientation(orientation);
+    }
+
+    public void setVideoBitrate(int bitrate, boolean apply) {
+        if (apply) this.stopEncode();
+        mEncoder.setVideoBitrate(bitrate, apply);
+        if (apply) this.startEncode();
     }
 
     public void setVideoHDMode() {

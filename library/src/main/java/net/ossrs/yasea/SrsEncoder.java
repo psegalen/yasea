@@ -32,12 +32,12 @@ public class SrsEncoder {
     public static int vLandscapeHeight = 360;
     public static int vOutWidth = 360;   // Note: the stride of resolution must be set as 16x for hard encoding with some chip like MTK
     public static int vOutHeight = 640;  // Since Y component is quadruple size as U and V component, the stride must be set as 32x
-    public static int vBitrate = 2048 * 1024;  // 1200 kbps
+    public static int vBitrate = 2048 * 1024;  // 2 Mbps
     public static final int VFPS = 30;
     public static final int VGOP = 30;
     public static final int ASAMPLERATE = 44100;
     public static int aChannelConfig = AudioFormat.CHANNEL_IN_STEREO;
-    public static final int ABITRATE = 64 * 1024;  // 64 kbps
+    public static final int ABITRATE = 192 * 1024;  // 64 kbps
 
     private SrsEncodeHandler mHandler;
 
@@ -151,23 +151,32 @@ public class SrsEncoder {
             return false;
         }
 
-        // setup the vencoder.
-        // Note: landscape to portrait, 90 degree rotation, so we need to switch width and height in configuration
-        MediaFormat videoFormat = MediaFormat.createVideoFormat(VCODEC, vOutWidth, vOutHeight);
-        videoFormat.setInteger(MediaFormat.KEY_COLOR_FORMAT, mVideoColorFormat);
-        videoFormat.setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, 0);
-        videoFormat.setInteger(MediaFormat.KEY_BIT_RATE, vBitrate);
-        videoFormat.setInteger(MediaFormat.KEY_FRAME_RATE, VFPS);
-        videoFormat.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, VGOP / VFPS);
-        vencoder.configure(videoFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
-        // add the video tracker to muxer.
-        videoFlvTrack = flvMuxer.addTrack(videoFormat);
-        videoMp4Track = mp4Muxer.addTrack(videoFormat);
+        this.configureVencoder(true);
 
         // start device and encoder.
         vencoder.start();
         aencoder.start();
         return true;
+    }
+
+    private void configureVencoder(boolean initial) {
+        if(vencoder != null) {
+            if (!initial) setEncoderBitrate(vBitrate);
+
+            MediaFormat videoFormat = MediaFormat.createVideoFormat(VCODEC, vOutWidth, vOutHeight);
+            videoFormat.setInteger(MediaFormat.KEY_COLOR_FORMAT, mVideoColorFormat);
+            videoFormat.setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, 0);
+            videoFormat.setInteger(MediaFormat.KEY_BIT_RATE, vBitrate);
+            videoFormat.setInteger(MediaFormat.KEY_FRAME_RATE, VFPS);
+            videoFormat.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, VGOP / VFPS);
+            vencoder.configure(videoFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
+
+            if (initial) {
+                // add the video tracker to muxer.
+                videoFlvTrack = flvMuxer.addTrack(videoFormat);
+                videoMp4Track = mp4Muxer.addTrack(videoFormat);
+            }
+        }
     }
 
     public void stop() {
@@ -254,6 +263,13 @@ public class SrsEncoder {
     public void setVideoSmoothMode() {
         vBitrate = 500 * 1024;  // 500 kbps
         x264Preset = "superfast";
+    }
+
+    public void setVideoBitrate(int bitrate, boolean apply) {
+        vBitrate = bitrate;
+        if (apply) {
+            this.configureVencoder(false);
+        }
     }
 
     public int getPreviewWidth() {

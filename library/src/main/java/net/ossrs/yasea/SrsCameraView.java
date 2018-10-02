@@ -9,6 +9,8 @@ import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
 import android.opengl.Matrix;
 import android.util.AttributeSet;
+import android.util.Log;
+import android.view.Surface;
 
 import com.seu.magicfilter.base.gpuimage.GPUImageFilter;
 import com.seu.magicfilter.utils.MagicFilterFactory;
@@ -49,6 +51,7 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
     private int mCamId = -1;
     private int mPreviewRotation = 90;
     private int mPreviewOrientation = Configuration.ORIENTATION_PORTRAIT;
+    private int mRotation = Surface.ROTATION_90;
 
     private Thread worker;
     private final Object writeLock = new Object();
@@ -88,7 +91,9 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
         // For camera preview on activity creation
         if (mCamera != null) {
             try {
+                mCamera.stopPreview();
                 mCamera.setPreviewTexture(surfaceTexture);
+                mCamera.startPreview();
             } catch (IOException ioe) {
                 ioe.printStackTrace();
             }
@@ -200,7 +205,39 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
     public void setCameraId(int id) {
         stopTorch();
         mCamId = id;
-        setPreviewOrientation(mPreviewOrientation);
+        setRotation(mRotation);
+    }
+
+    public void setRotation(int rotation) {
+        mRotation = rotation;
+        Camera.CameraInfo info = new Camera.CameraInfo();
+        Camera.getCameraInfo(mCamId, info);
+        int newRotation = 0;
+        switch (rotation) {
+            case Surface.ROTATION_0:
+                newRotation = 90;
+                break;
+            case Surface.ROTATION_90:
+                newRotation = 0;
+                break;
+            case Surface.ROTATION_180:
+                newRotation = 270;
+                break;
+            case Surface.ROTATION_270:
+                newRotation = 180;
+                break;
+        }
+        commitPreviewRotation(info, newRotation);
+        Log.d("SrsCameraView", String.format("New rotation: %d, new preview rotation: %d", newRotation, mPreviewRotation));
+    }
+
+    private void commitPreviewRotation(Camera.CameraInfo info, int rotation) {
+        if (info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
+            mPreviewRotation = rotation % 360;
+            //mPreviewRotation = (360 - mPreviewRotation) % 360;  // compensate the mirror
+        } else {
+            mPreviewRotation = rotation % 360;
+        }
     }
 
     public void setPreviewOrientation(int orientation) {
@@ -303,9 +340,9 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
         List<String> supportedFlashModes = params.getSupportedFlashModes();
         if (supportedFlashModes != null && !supportedFlashModes.isEmpty()) {
             if (supportedFlashModes.contains(Camera.Parameters.FLASH_MODE_TORCH)) {
-                if (mIsTorchOn) {
+                /*if (mIsTorchOn) {
                     params.setFlashMode(Camera.Parameters.FLASH_MODE_TORCH);
-                }
+                }*/
             } else {
                 params.setFlashMode(supportedFlashModes.get(0));
             }
@@ -353,10 +390,10 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
                     break;
                 }
             }
-            if (frontCamId != -1) {
-                mCamId = frontCamId;
-            } else if (backCamId != -1) {
+            if (backCamId != -1) {
                 mCamId = backCamId;
+            } else if (frontCamId != -1) {
+                mCamId = frontCamId;
             } else {
                 mCamId = 0;
             }
